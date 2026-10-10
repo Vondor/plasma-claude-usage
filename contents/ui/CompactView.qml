@@ -50,6 +50,11 @@ Item {
     readonly property real ringFontScale: Math.min(0.36, 0.3 + (root.metricsScale - 1) * 0.04)
 
     readonly property int barWidth: Math.round(32 * root.metricsScale)
+    // In a vertical layout the widget's height comes from usageRow's implicit
+    // height, so a bar sized to its parent's height would feed back into it and
+    // the layout never settles (plasmashell hangs at 100% CPU, #26). Give the
+    // bar its own height there; horizontally the panel fixes the row height.
+    readonly property int barHeight: fitted(Math.round(Kirigami.Units.iconSizes.medium * root.metricsScale))
     // Capped against the bar's own height: a number taller than roughly half
     // the bar fills it edge to edge, and centring the font's bounding box then
     // reads as the digits sitting too high, since digits have no descenders.
@@ -202,7 +207,7 @@ Item {
         Item {
             visible: root.showUsageStats && root.effectivePanelStyle === "bar" && (Plasmoid.configuration.showSession !== false) && root.metricsVisible
             Layout.preferredWidth: compact.barWidth
-            Layout.preferredHeight: parent.height
+            Layout.preferredHeight: root.isVerticalLayout ? compact.barHeight : parent.height
             opacity: (root.hasTokenError || root.hasRateLimitError) ? 0.5 : root.isStale ? 0.6 : 1.0
 
             Rectangle {
@@ -248,7 +253,7 @@ Item {
         Item {
             visible: root.showUsageStats && root.effectivePanelStyle === "bar" && (Plasmoid.configuration.showWeekly !== false) && root.metricsVisible
             Layout.preferredWidth: compact.barWidth
-            Layout.preferredHeight: parent.height
+            Layout.preferredHeight: root.isVerticalLayout ? compact.barHeight : parent.height
             opacity: (root.hasTokenError || root.hasRateLimitError) ? 0.5 : root.isStale ? 0.6 : 1.0
 
             Rectangle {
@@ -296,7 +301,7 @@ Item {
             delegate: Item {
                 visible: root.showUsageStats && root.effectivePanelStyle === "bar" && root.isModelShownInPanel(modelData.label) && root.metricsVisible
                 Layout.preferredWidth: compact.barWidth
-                Layout.preferredHeight: parent.height
+                Layout.preferredHeight: root.isVerticalLayout ? compact.barHeight : parent.height
                 opacity: (root.hasTokenError || root.hasRateLimitError) ? 0.5 : root.isStale ? 0.6 : 1.0
 
                 Rectangle {
