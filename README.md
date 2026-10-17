@@ -8,6 +8,7 @@ A KDE Plasma 6 widget that displays your Claude Code usage statistics in the tas
 
 - **3 Panel Styles**: Ring (anti-aliased progress rings), Text (percentage + dot), Bar (vertical bars with time marker)
   ![Panel](screenshots/panel.png)
+- **Panel Customization**: Metrics size (100–300%), ring center (percent, Claude logo, or logo + percent) with adjustable logo size, 5h/7d window labels, panel margin and icon size
 - **Time-Proportional Coloring**: Colors based on elapsed time vs usage ratio (configurable, can switch to fixed 50/80/100% thresholds)
 - **Card Popup**: Modern card-based popup with configurable card order and visibility (via settings)
   - Account info, session & weekly usage rings, per-model breakdown, extra usage, token stats, trend chart, installations, quick links
@@ -63,7 +64,12 @@ kpackagetool6 -t Plasma/Applet -i .
 
 ## Configuration
 
-Right-click the widget and select **Configure...** to open the settings.
+Right-click the widget and select **Configure...** to open the settings. They are grouped into tabs:
+
+- **General**: language, refresh interval, notifications, update check, colors, visibility when Claude is not running
+- **Panel**: style, what to show, layout, metrics size, margin, ring center and logo size, window labels, icon
+- **Popup**: card or classic style, scrolling, desktop background opacity, card order, quick links
+- **Account**: credentials location, automatic session refresh, custom API
 
 ### Credentials Location (optional)
 
@@ -155,6 +161,7 @@ claude-usage-widget/
 ├── install.sh                 # Installation script
 ├── contents/
 │   ├── config/
+│   │   ├── config.qml         # Settings tabs
 │   │   └── main.xml           # Configuration schema
 │   ├── ui/
 │   │   ├── main.qml           # Core logic, data, API
@@ -163,7 +170,10 @@ claude-usage-widget/
 │   │   ├── UsageRing.qml      # Anti-aliased progress ring component
 │   │   ├── ModelRow.qml       # Model breakdown row component
 │   │   ├── TrendChart.qml     # 7-day trend chart component
-│   │   ├── configGeneral.qml  # Settings UI
+│   │   ├── configGeneral.qml  # Settings: General tab
+│   │   ├── configPanel.qml    # Settings: Panel tab
+│   │   ├── configPopup.qml    # Settings: Popup tab
+│   │   ├── configAccount.qml  # Settings: Account tab
 │   │   └── Translations.qml   # i18n (15 languages)
 │   └── icons/
 │       ├── claude.svg         # Claude logo (orange)

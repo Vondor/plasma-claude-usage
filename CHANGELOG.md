@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-10-17
+
+### Added
+
+- **Ring logo size** setting (50–100%, default 85% of the ring's inner diameter) for the Logo and Logo + % ring modes
+
+### Changed
+
+- Settings are grouped into **General**, **Panel**, **Popup** and **Account** tabs instead of one long page; the tab names follow the widget's language
+- Ring options are only enabled for the ring style, the ring logo size only in the logo modes
+- The popup's update badge now says "Claude Code 2.1.x available", so it no longer looks like a widget update ([#27](https://github.com/izll/plasma-claude-usage/issues/27), thanks @rj-au)
+
 ## [2.4.2] - 2026-10-10
 
 ### Fixed
@@ -266,6 +278,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable refresh interval
 - Error handling for login issues
 
+[2.5.0]: https://github.com/izll/plasma-claude-usage/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/izll/plasma-claude-usage/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/izll/plasma-claude-usage/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/izll/plasma-claude-usage/compare/v2.3.5...v2.4.0
