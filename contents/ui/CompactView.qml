@@ -49,6 +49,7 @@ Item {
     // would otherwise keep a number sized for a 28px ring. 100% stays at 0.3.
     readonly property real ringFontScale: Math.min(0.36, 0.3 + (root.metricsScale - 1) * 0.04)
 
+    readonly property real ringLogoScale: Math.max(50, Math.min(Plasmoid.configuration.ringLogoSize || 85, 100)) / 100
     readonly property int barWidth: Math.round(32 * root.metricsScale)
     // In a vertical layout the widget's height comes from usageRow's implicit
     // height, so a bar sized to its parent's height would feed back into it and
@@ -362,6 +363,7 @@ Item {
                 ? "../icons/claude-tile.svg" : "../icons/claude.svg").toString()
                 : ""
             centerPercentOverlay: (Plasmoid.configuration.ringCenter || "percent") === "logo_percent"
+            logoScale: compact.ringLogoScale
             cornerLabel: Plasmoid.configuration.showWindowLabels === true ? "5h" : ""
         }
 
@@ -380,6 +382,7 @@ Item {
                 ? "../icons/claude-tile.svg" : "../icons/claude.svg").toString()
                 : ""
             centerPercentOverlay: (Plasmoid.configuration.ringCenter || "percent") === "logo_percent"
+            logoScale: compact.ringLogoScale
             cornerLabel: Plasmoid.configuration.showWindowLabels === true ? "7d" : ""
         }
 
@@ -400,6 +403,7 @@ Item {
                     ? "../icons/claude-tile.svg" : "../icons/claude.svg").toString()
                     : ""
                 centerPercentOverlay: (Plasmoid.configuration.ringCenter || "percent") === "logo_percent"
+                logoScale: compact.ringLogoScale
             }
         }
 

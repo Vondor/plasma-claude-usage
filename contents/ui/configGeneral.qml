@@ -28,6 +28,7 @@ KCM.SimpleKCM {
     property string cfg_popupStyle
     property string cfg_panelIcon
     property string cfg_ringCenter
+    property int cfg_ringLogoSize
     property bool cfg_showWindowLabels
     property int cfg_panelMargin
     property bool cfg_enableNotifications
@@ -384,6 +385,31 @@ KCM.SimpleKCM {
             model: [tr("Percent"), tr("Logo"), tr("Logo + %")]
             currentIndex: cfg_ringCenter === "logo" ? 1 : cfg_ringCenter === "logo_percent" ? 2 : 0
             onCurrentIndexChanged: cfg_ringCenter = ["percent", "logo", "logo_percent"][currentIndex]
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: tr("Ring logo size:")
+            enabled: (cfg_ringCenter || "percent").indexOf("logo") === 0
+
+            QQC2.Slider {
+                from: 50
+                to: 100
+                stepSize: 5
+                snapMode: QQC2.Slider.SnapAlways
+                value: cfg_ringLogoSize
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 10
+
+                onValueChanged: {
+                    if (cfg_ringLogoSize !== value) {
+                        cfg_ringLogoSize = value
+                    }
+                }
+            }
+
+            QQC2.Label {
+                text: Math.round(cfg_ringLogoSize) + "%"
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+            }
         }
 
         RowLayout {
