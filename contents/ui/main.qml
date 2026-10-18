@@ -1616,6 +1616,31 @@ PlasmoidItem {
                             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                             color: Kirigami.Theme.disabledTextColor
                         }
+                        // Widget update: green pill, opens "Get New Widgets"
+                        Rectangle {
+                            visible: root.widgetUpdateAvailable
+                            Layout.preferredWidth: classicWidgetUpdateLabel.implicitWidth + Kirigami.Units.largeSpacing
+                            Layout.preferredHeight: classicWidgetUpdateLabel.implicitHeight + Kirigami.Units.smallSpacing
+                            radius: height / 2
+                            color: Qt.alpha(Kirigami.Theme.positiveTextColor, classicWidgetUpdateMouse.containsMouse ? 0.3 : 0.18)
+
+                            PlasmaComponents.Label {
+                                id: classicWidgetUpdateLabel
+                                anchors.centerIn: parent
+                                text: "⬆ " + i18n.tr("Widget update") + " " + root.widgetLatestVersion
+                                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                                font.bold: true
+                                color: Kirigami.Theme.positiveTextColor
+                            }
+
+                            MouseArea {
+                                id: classicWidgetUpdateMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.openWidgetUpdates()
+                            }
+                        }
                         Item { Layout.fillWidth: true }
                         PlasmaComponents.Button {
                             icon.name: "view-refresh"
@@ -1779,6 +1804,58 @@ PlasmoidItem {
 
     function modelBarColor(key, percent) {
         return key === "fable" ? "#D97757" : getUsageColor(percent)
+    }
+
+    // ===== Widget update check =====
+    // Asks the KDE Store (the same data Discover uses) for this widget's latest
+    // version once a day. Only a low-key label in the popup footer shows it.
+    readonly property string storeProductId: "2331316"
+    readonly property string widgetVersion: Plasmoid.metaData.version || ""
+    property string widgetLatestVersion: ""
+    readonly property bool widgetUpdateAvailable: Plasmoid.configuration.checkWidgetUpdates !== false
+        && root.widgetVersion !== "" && root.widgetLatestVersion !== ""
+        && isNewerVersion(root.widgetLatestVersion, root.widgetVersion)
+
+    Plasma5Support.DataSource {
+        id: widgetUpdateChecker
+        engine: "executable"
+        connectedSources: []
+
+        onNewData: function(sourceName, data) {
+            var stdout = data["stdout"] || ""
+            disconnectSource(sourceName)
+            var m = stdout.match(/<content[^>]*>[\s\S]*?<version>([^<]+)<\/version>/)
+            if (m) {
+                root.widgetLatestVersion = m[1].trim()
+                widgetUpdateTimer.interval = 86400000
+                console.log("Claude Usage: widget store version:", root.widgetLatestVersion, "installed:", root.widgetVersion)
+            } else {
+                // offline at login, or the Store is down: try again in an hour
+                widgetUpdateTimer.interval = 3600000
+            }
+        }
+    }
+
+    Timer {
+        id: widgetUpdateTimer
+        interval: 120000   // first check shortly after login, then daily
+        running: Plasmoid.configuration.checkWidgetUpdates !== false
+        repeat: true
+        onTriggered: widgetUpdateChecker.connectSource("curl -sS --max-time 10 https://api.kde-look.org/ocs/v1/content/data/" + root.storeProductId + " 2>/dev/null")
+    }
+
+    Plasma5Support.DataSource {
+        id: widgetUpdateLauncher
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(sourceName, data) { disconnectSource(sourceName) }
+    }
+
+    // "Get New Widgets" lists the update reliably; Discover and the Store page are fallbacks.
+    function openWidgetUpdates() {
+        widgetUpdateLauncher.connectSource("sh -c 'if command -v knewstuff-dialog6 >/dev/null; then setsid knewstuff-dialog6 plasmoids.knsrc; "
+            + "elif command -v plasma-discover >/dev/null; then setsid plasma-discover --mode update; "
+            + "else xdg-open https://store.kde.org/p/" + root.storeProductId + "; fi >/dev/null 2>&1 &'")
     }
 
     function isNewerVersion(a, b) {

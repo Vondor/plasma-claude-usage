@@ -82,6 +82,10 @@
             <label>Check for Claude Code updates via npm registry</label>
             <default>true</default>
         </entry>
+        <entry name="checkWidgetUpdates" type="Bool">
+            <label>Check the KDE Store for a newer version of this widget</label>
+            <default>true</default>
+        </entry>
         <entry name="showInstallations" type="Bool">
             <label>Show Claude Code installations in popup</label>
             <default>false</default>
