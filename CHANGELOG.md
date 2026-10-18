@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026-10-19
+
+### Added
+
+- **Widget update notice**: the widget checks the KDE Store (the same data Discover uses) once a day for a newer version of itself. A green "Widget update X.Y.Z" badge in the popup footer opens "Get New Widgets"; the General settings tab shows the installed version with "Up to date" or an Update button. Can be turned off with "Check for widget updates"
+
 ## [2.5.0] - 2026-10-17
 
 ### Added
@@ -278,6 +284,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable refresh interval
 - Error handling for login issues
 
+[2.5.1]: https://github.com/izll/plasma-claude-usage/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/izll/plasma-claude-usage/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/izll/plasma-claude-usage/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/izll/plasma-claude-usage/compare/v2.4.0...v2.4.1

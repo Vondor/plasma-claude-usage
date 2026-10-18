@@ -15,6 +15,7 @@ A KDE Plasma 6 widget that displays your Claude Code usage statistics in the tas
 - **Classic Popup**: Traditional layout with progress bars (switchable in settings)
 - **Desktop Notifications**: Alerts when usage crosses thresholds (50/80/95% session, 95% weekly, quota reset)
 - **Update Checker**: Orange dot on panel icon when a new Claude Code version is available
+- **Widget Update Notice**: Green badge in the popup when a newer version of the widget is on the KDE Store, opening "Get New Widgets"
 - **Process Visibility**: Hide widget or usage when Claude is not running
 - **Configurable Refresh**: Default 5 min polling (adjustable in settings)
 - **Smart Rate Limit Handling**: Uses `retry-after` header, exponential backoff, and token watcher for automatic recovery
