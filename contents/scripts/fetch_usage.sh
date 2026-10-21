@@ -41,7 +41,7 @@ extract_token() {
     printf '%s' "$TOK"
 }
 
-TOKEN=$(tr -d '\n\r' < "$CREDS" 2>/dev/null | extract_token)
+TOKEN=$(tr -d '\n\r' 2>/dev/null < "$CREDS" | extract_token)
 
 # No Claude Code login: try Claude Desktop's cached login. The helper prints
 # the same JSON shape as the credentials file.

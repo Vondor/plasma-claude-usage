@@ -124,9 +124,18 @@ fi
 log "decrypted ${#PLAIN} bytes"
 
 if [ -n "$DIAG" ]; then
-    log "field names in the decrypted cache (UUIDs masked):"
-    printf '%s' "$PLAIN" | grep -o '"[A-Za-z0-9_:. -]*"[[:space:]]*:' | sort -u \
-        | sed -E 's/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/<uuid>/g;s/^/    /' >&2
+    # Shape of the decrypted data with everything secret-looking removed:
+    # non-printable bytes become "?", e-mail addresses, UUIDs, "sk-ant-..."
+    # tokens and every run of 24+ token-like characters are replaced by
+    # placeholders. What is left is punctuation, short key names and numbers.
+    log "structure of the decrypted cache (long values, e-mails and UUIDs masked, first 2000 chars):"
+    printf '%s' "$PLAIN" | tr -c '[:print:]' '?' \
+        | sed -E 's/[^ "?,:{}]*@[^ "?,:{}]*/<email>/g' \
+        | sed -E 's/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/<uuid>/g' \
+        | sed -E 's/(sk-ant-[a-z]+[0-9]*-)[A-Za-z0-9_-]+/\1<redacted>/g' \
+        | sed -E 's#[A-Za-z0-9_+/=.:-]{24,}#<long>#g' \
+        | head -c 2000 | sed 's/^/    /' >&2
+    printf '\n' >&2
 fi
 
 # The decrypted JSON may hold several entries (one per client/scope). Split on
@@ -139,13 +148,13 @@ PICK=$(printf '%s' "$PLAIN" | tr '}' '\n' | awk -v DIAGN="$DIAG" '
     if (!match($0, /sk-ant-oat[0-9]*-[A-Za-z0-9_-]+/)) next
     tok = substr($0, RSTART, RLENGTH)
     ex = 0
-    if (match($0, /"expir[A-Za-z_]*"[ ]*:[ ]*[0-9]+/)) {
+    if (match($0, /\\?"expir[A-Za-z_]*\\?"[ ]*:[ ]*[0-9]+/)) {
         s = substr($0, RSTART, RLENGTH); sub(/.*:[ ]*/, "", s); ex = s + 0
         if (ex > 0 && ex < 100000000000) ex = ex * 1000
     }
     st = ""
-    if (match($0, /"subscriptionType"[ ]*:[ ]*"[A-Za-z_]+"/)) {
-        s = substr($0, RSTART, RLENGTH); sub(/.*:[ ]*"/, "", s); sub(/"$/, "", s); st = s
+    if (match($0, /\\?"subscriptionType\\?"[ ]*:[ ]*\\?"[A-Za-z_]+\\?"/)) {
+        s = substr($0, RSTART, RLENGTH); sub(/.*:[ ]*\\?"/, "", s); sub(/\\?"$/, "", s); st = s
     }
     pref = (index($0, "user:profile") > 0) ? 1 : 0
     n++
