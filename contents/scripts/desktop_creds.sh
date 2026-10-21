@@ -159,7 +159,7 @@ case "$PREFIX" in
         # A keyring lookup can raise a permission prompt (KWallet). If it
         # failed or was refused recently, don't ask again on every poll.
         MARK="${XDG_RUNTIME_DIR:-/tmp}/claude-usage-desktop-keyring-miss-$(id -u)"
-        if [ -z "$DIAG" ] && [ -n "$(find "$MARK" -mmin -30 2>/dev/null)" ]; then
+        if [ -z "$DIAG" ] && [ -n "$(find "$MARK" -mmin -30 2>/dev/null)" ] && [ ! "$CFG" -nt "$MARK" ]; then
             exit 0
         fi
         [ -n "$DIAG" ] && keyring_diag
@@ -196,6 +196,7 @@ case "$PREFIX" in
         exit 0
         ;;
 esac
+[ -n "$OK" ] && rm -f "${XDG_RUNTIME_DIR:-/tmp}/claude-usage-desktop-keyring-miss-$(id -u)" 2>/dev/null
 if [ -z "$OK" ]; then
     log "no key decrypts the token cache"
     exit 0
