@@ -137,8 +137,10 @@ read_kwallet() {
 # Names only, never values: what the keyring offers for Claude.
 keyring_diag() {
     if command -v kwallet-query >/dev/null 2>&1; then
-        log "kwallet-query: entries in folder 'Claude Keys' of wallet 'kdewallet':"
-        timeout 20 kwallet-query -f "Claude Keys" -l kdewallet 2>&1 | head -n 20 | sed 's/^/    /' >&2
+        log "kwallet-query: entries in folders 'Chromium Keys' / 'Claude Keys' of wallet 'kdewallet':"
+        for _f in "Chromium Keys" "Claude Keys"; do
+            timeout 20 kwallet-query -f "$_f" -l kdewallet 2>&1 | head -n 20 | sed 's/^/    /' >&2
+        done
     fi
     LOGF="$DIR/logs/main.log"
     if [ -r "$LOGF" ]; then
@@ -162,7 +164,7 @@ case "$PREFIX" in
         fi
         [ -n "$DIAG" ] && keyring_diag
         if command -v secret-tool >/dev/null 2>&1; then
-            for app in Claude claude; do
+            for app in Claude claude chromium Chromium; do
                 KEYRING_PW=$(timeout 10 secret-tool lookup application "$app" 2>/dev/null)
                 if [ $? -eq 0 ] && [ -n "$KEYRING_PW" ]; then
                     try_password "$KEYRING_PW" "secret-tool application=$app" && { OK=1; break; }
@@ -175,8 +177,14 @@ case "$PREFIX" in
         fi
         if [ -z "$OK" ]; then
             if command -v kwallet-query >/dev/null 2>&1; then
-                read_kwallet "Claude Keys" "Claude Safe Storage" \
-                    && try_password "$KEYRING_PW" "kwallet Claude Keys/Claude Safe Storage" && OK=1
+                # Electron registers the key under the product name, which is
+                # "Chromium" on current Linux builds (seen on Electron 44 /
+                # KWallet 6) and may be "Claude" on others. try_password
+                # validates the padding, so a wrong entry is simply skipped.
+                for name in Chromium Claude; do
+                    read_kwallet "$name Keys" "$name Safe Storage" \
+                        && try_password "$KEYRING_PW" "kwallet $name Keys/$name Safe Storage" && { OK=1; break; }
+                done
             else
                 log "kwallet-query not installed"
             fi
