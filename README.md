@@ -97,7 +97,7 @@ If there is no Claude Code login, the widget falls back to the login cached by C
 Claude Desktop keeps its login in `~/.config/Claude/config.json`, encrypted with Electron's safeStorage. The widget decrypts it **read-only** with `contents/scripts/desktop_creds.sh`, which needs:
 
 - `openssl` 3.0 or newer (present on practically every current distribution)
-- if Claude Desktop stores its key in the system keyring: `secret-tool` (libsecret, GNOME Keyring and compatible) or `kwallet-query` (KWallet). KWallet may ask you once to allow access; if the lookup fails or is refused the widget waits 30 minutes before asking again
+- if Claude Desktop stores its key in the system keyring: `secret-tool` (libsecret, GNOME Keyring and compatible) or `kwallet-query` (KWallet). KWallet may ask you once to allow access (Electron files the key under the product name, so the widget looks in both `Chromium Keys/Chromium Safe Storage` and `Claude Keys/Claude Safe Storage`); if the lookup fails or is refused the widget waits 30 minutes before asking again
 
 Things to know:
 
