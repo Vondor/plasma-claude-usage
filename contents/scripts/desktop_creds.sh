@@ -64,64 +64,134 @@ if [ -z "$B64" ]; then
     exit 0
 fi
 
+TMPD=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/claude-usage-desktop.XXXXXX" 2>/dev/null) || {
+    log "cannot create a temporary directory"
+    exit 0
+}
+trap 'rm -rf "$TMPD"' EXIT
+
 # Electron safeStorage on Linux prefixes the ciphertext with "v10" (fixed
 # Chromium password, no keyring available) or "v11" (password from keyring).
 PREFIX=$(printf '%s' "$B64" | base64 -d 2>/dev/null | head -c 3)
+printf '%s' "$B64" | base64 -d 2>/dev/null | tail -c +4 > "$TMPD/ct"
+CTLEN=$(wc -c < "$TMPD/ct" | tr -d ' ')
+log "ciphertext prefix '$PREFIX', $CTLEN bytes after it (multiple of 16: $([ $((CTLEN % 16)) -eq 0 ] && echo yes || echo NO))"
+
+hexof() { printf '%s' "$1" | od -An -tx1 | tr -d ' \n'; }
+
+# try_key <hex password> <label>
+# Chromium os_crypt (Linux): AES-128-CBC, IV = 16 spaces, key = PBKDF2-HMAC-SHA1
+# (password, salt "saltysalt", 1 iteration, 16 bytes). A wrong key almost
+# always fails the PKCS#7 padding check; the rare chance pass is caught by
+# requiring the result to be (almost) all printable text. On success the
+# plaintext is left in $PLAIN.
+try_key() {
+    _k=$(openssl kdf -keylen 16 -kdfopt digest:SHA1 -kdfopt hexpass:"$1" \
+            -kdfopt salt:saltysalt -kdfopt iter:1 PBKDF2 2>/dev/null | tr -d ':\n ')
+    if [ -z "$_k" ]; then
+        log "$2: openssl kdf failed (openssl >= 3.0 required)"
+        return 1
+    fi
+    _p=$(openssl enc -d -aes-128-cbc -K "$_k" -iv 20202020202020202020202020202020 \
+            -in "$TMPD/ct" 2>"$TMPD/err")
+    if [ $? -ne 0 ]; then
+        log "$2: wrong key (bad padding)"
+        return 1
+    fi
+    _len=${#_p}
+    _np=$(printf '%s' "$_p" | tr -d '[:print:]\n\r\t' | wc -c | tr -d ' ')
+    if [ "$_len" -eq 0 ] || [ $((_np * 10)) -gt "$_len" ]; then
+        log "$2: padding ok but the result is not text (wrong key)"
+        return 1
+    fi
+    PLAIN=$(printf '%s' "$_p" | tr -d '\n\r')
+    log "$2: decrypted ${#PLAIN} bytes, padding valid"
+    return 0
+}
+
+# try_password <password string> <label>: the keyring value as stored, then,
+# if it is base64 for something else, the decoded bytes.
+try_password() {
+    try_key "$(hexof "$1")" "$2 (as stored)" && return 0
+    _dec=$(printf '%s' "$1" | base64 -d 2>/dev/null | od -An -tx1 | tr -d ' \n')
+    if [ -n "$_dec" ] && [ "$_dec" != "$(hexof "$1")" ]; then
+        try_key "$_dec" "$2 (base64-decoded)" && return 0
+    fi
+    return 1
+}
+
+# read_kwallet <folder> <entry>: value in $KEYRING_PW. Only the exit status
+# decides success, so an error message on stdout is never mistaken for a key.
+read_kwallet() {
+    _out=$(timeout 20 kwallet-query -f "$1" -r "$2" kdewallet 2>"$TMPD/kwerr")
+    _rc=$?
+    log "kwallet-query folder='$1' entry='$2': exit $_rc, ${#_out} chars, $(printf '%s' "$_out" | tr -d 'A-Za-z0-9+/=' | wc -c | tr -d ' ') of them outside [A-Za-z0-9+/=]"
+    if [ -n "$DIAG" ]; then
+        [ -s "$TMPD/kwerr" ] && log "  stderr: $(head -c 300 "$TMPD/kwerr" | tr '\n' ' ')"
+        [ $_rc -ne 0 ] && [ -n "$_out" ] && log "  stdout (not a key, exit status was non-zero): $(printf '%s' "$_out" | head -c 200 | tr '\n' ' ')"
+    fi
+    [ $_rc -eq 0 ] && [ -n "$_out" ] || return 1
+    KEYRING_PW=$_out
+}
+
+# Names only, never values: what the keyring offers for Claude.
+keyring_diag() {
+    if command -v kwallet-query >/dev/null 2>&1; then
+        log "kwallet-query: entries in folder 'Claude Keys' of wallet 'kdewallet':"
+        timeout 20 kwallet-query -f "Claude Keys" -l kdewallet 2>&1 | head -n 20 | sed 's/^/    /' >&2
+    fi
+    LOGF="$DIR/logs/main.log"
+    if [ -r "$LOGF" ]; then
+        log "last log lines mentioning the key store ($LOGF):"
+        grep -i -E 'safestorage|safe storage|keyring|kwallet|libsecret|password.store' "$LOGF" 2>/dev/null \
+            | tail -n 5 | cut -c1-200 | sed -E 's/[^ ]*@[^ ]*/<email>/g;s/^/    /' >&2
+    fi
+}
+
+OK=""
 case "$PREFIX" in
-    v10) PASSWORD="peanuts" ;;
+    v10)
+        try_key "$(hexof peanuts)" "v10 fixed Chromium password" && OK=1
+        ;;
     v11)
         # A keyring lookup can raise a permission prompt (KWallet). If it
         # failed or was refused recently, don't ask again on every poll.
         MARK="${XDG_RUNTIME_DIR:-/tmp}/claude-usage-desktop-keyring-miss-$(id -u)"
-        if [ -n "$(find "$MARK" -mmin -30 2>/dev/null)" ] && [ -z "$DIAG" ]; then
+        if [ -z "$DIAG" ] && [ -n "$(find "$MARK" -mmin -30 2>/dev/null)" ]; then
             exit 0
         fi
-        PASSWORD=""
+        [ -n "$DIAG" ] && keyring_diag
         if command -v secret-tool >/dev/null 2>&1; then
             for app in Claude claude; do
-                PASSWORD=$(timeout 10 secret-tool lookup application "$app" 2>/dev/null)
-                [ -n "$PASSWORD" ] && { log "key found via secret-tool (application=$app)"; break; }
+                KEYRING_PW=$(timeout 10 secret-tool lookup application "$app" 2>/dev/null)
+                if [ $? -eq 0 ] && [ -n "$KEYRING_PW" ]; then
+                    try_password "$KEYRING_PW" "secret-tool application=$app" && { OK=1; break; }
+                else
+                    log "secret-tool application=$app: nothing found"
+                fi
             done
         else
             log "secret-tool not installed"
         fi
-        if [ -z "$PASSWORD" ] && command -v kwallet-query >/dev/null 2>&1; then
-            PASSWORD=$(timeout 20 kwallet-query -f "Claude Keys" -r "Claude Safe Storage" kdewallet 2>/dev/null)
-            [ -n "$PASSWORD" ] && log "key found via kwallet-query"
-        elif [ -z "$PASSWORD" ]; then
-            log "kwallet-query not installed"
+        if [ -z "$OK" ]; then
+            if command -v kwallet-query >/dev/null 2>&1; then
+                read_kwallet "Claude Keys" "Claude Safe Storage" \
+                    && try_password "$KEYRING_PW" "kwallet Claude Keys/Claude Safe Storage" && OK=1
+            else
+                log "kwallet-query not installed"
+            fi
         fi
-        if [ -z "$PASSWORD" ]; then
-            log "could not read the Safe Storage key from the keyring"
-            : > "$MARK" 2>/dev/null
-            exit 0
-        fi
+        [ -z "$OK" ] && : > "$MARK" 2>/dev/null
         ;;
     *)
         log "unsupported ciphertext prefix (expected v10 or v11)"
         exit 0
         ;;
 esac
-log "ciphertext prefix $PREFIX"
-
-# Chromium os_crypt (Linux): AES-128-CBC, IV = 16 spaces, key = PBKDF2-HMAC-SHA1
-# (password, salt "saltysalt", 1 iteration, 16 bytes).
-HEXPW=$(printf '%s' "$PASSWORD" | od -An -tx1 | tr -d ' \n')
-KEY=$(openssl kdf -keylen 16 -kdfopt digest:SHA1 -kdfopt hexpass:"$HEXPW" \
-        -kdfopt salt:saltysalt -kdfopt iter:1 PBKDF2 2>/dev/null | tr -d ':\n ')
-if [ -z "$KEY" ]; then
-    log "openssl kdf failed (openssl >= 3.0 required)"
+if [ -z "$OK" ]; then
+    log "no key decrypts the token cache"
     exit 0
 fi
-
-PLAIN=$(printf '%s' "$B64" | base64 -d 2>/dev/null | tail -c +4 \
-    | openssl enc -d -aes-128-cbc -K "$KEY" -iv 20202020202020202020202020202020 2>/dev/null \
-    | tr -d '\n\r')
-if [ -z "$PLAIN" ]; then
-    log "decryption produced no output (wrong key?)"
-    exit 0
-fi
-log "decrypted ${#PLAIN} bytes"
 
 if [ -n "$DIAG" ]; then
     # Shape of the decrypted data with everything secret-looking removed:
