@@ -8,7 +8,6 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
-import org.kde.plasma.plasma5support as Plasma5Support
 
 KCM.SimpleKCM {
     id: configPage
@@ -28,7 +27,8 @@ KCM.SimpleKCM {
     property string cfg_panelIcon
     property int cfg_iconSize
 
-    property var availableModels: []
+    property string cfg_knownModels
+    readonly property var availableModels: (cfg_knownModels || "").split(",").filter(function(n) { return n !== "" })
 
     readonly property bool ringStyle: (cfg_panelStyle || "ring") === "ring"
     readonly property bool logoInRing: ringStyle && (cfg_ringCenter || "percent").indexOf("logo") === 0
@@ -52,34 +52,6 @@ KCM.SimpleKCM {
         if (enabled && idx < 0) list.push(name)
         else if (!enabled && idx >= 0) list.splice(idx, 1)
         cfg_showModelLimits = list.join(",")
-    }
-
-    Plasma5Support.DataSource {
-        id: cacheReader
-        engine: "executable"
-        connectedSources: []
-
-        onNewData: function(sourceName, data) {
-            var stdout = (data["stdout"] || "").trim()
-            disconnectSource(sourceName)
-            if (stdout.length > 10) {
-                try {
-                    var cache = JSON.parse(stdout)
-                    var models = cache.modelLimits || []
-                    var names = []
-                    for (var i = 0; i < models.length; i++) {
-                        if (models[i].name) names.push(models[i].name)
-                    }
-                    if (names.length > 0) configPage.availableModels = names
-                } catch (e) {
-                    console.log("Config: Cache parse error:", e)
-                }
-            }
-        }
-    }
-
-    Component.onCompleted: {
-        cacheReader.connectSource("cat $HOME/.local/share/claude-usage-cache.json 2>/dev/null")
     }
 
     Kirigami.FormLayout {
