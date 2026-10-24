@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Bogus "Breakdown" model row**: the usage API now returns `seven_day_breakdown`, a per-surface summary rather than a limit, and the popup showed it as "Breakdown 0%" in place of the real model limits (e.g. Fable from the `limits` array). Only `seven_day_*` entries with a numeric `utilization` count as model limits now
+
 ## [2.5.2] - 2026-10-22
 
 ### Fixed

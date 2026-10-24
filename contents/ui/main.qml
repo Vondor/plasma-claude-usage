@@ -818,7 +818,9 @@ PlasmoidItem {
                 for (var key in data) {
                     var m = key.match(/^seven_day_(.+)$/)
                     if (m && nonModelKeys.indexOf(m[1]) !== -1) continue
-                    if (m && data[key] && typeof data[key] === "object") {
+                    // Only real limits carry a numeric utilization; e.g.
+                    // seven_day_breakdown is a per-surface summary object.
+                    if (m && data[key] && typeof data[key].utilization === "number") {
                         models.push({
                             key: m[1],
                             name: modelDisplayName(m[1]),
