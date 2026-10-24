@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Fable usage limit** is now shown whenever the API reports one (e.g. on Max plans): a `seven_day_<model>` limit that the `limits` array doesn't cover is added to the model breakdown, so it appears in the panel, tooltip and classic popup, not only the card popup. The card popup also falls back to the `limits` array when that lists a model the `seven_day_*` keys don't
+- **Bogus "Breakdown" model row**: `seven_day_breakdown` (a per-surface summary, not a limit) showed up as a 0% model. Only `seven_day_*` entries with a numeric `utilization` count as model limits now, so the Fable entry from the `limits` array is what the popup shows
 - **Panel model checkboxes** in Settings → Panel were always empty because they read a `name` field the cached limits never had; Fable (and any other reported model) can now be picked for the panel
 
 ## [2.5.1] - 2026-10-19
