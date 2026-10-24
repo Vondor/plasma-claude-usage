@@ -11,7 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Fable usage limit** is now shown whenever the API reports one (e.g. on Max plans): a `seven_day_<model>` limit that the `limits` array doesn't cover is added to the model breakdown, so it appears in the panel, tooltip and classic popup, not only the card popup. The card popup also falls back to the `limits` array when that lists a model the `seven_day_*` keys don't
 - **Bogus "Breakdown" model row**: `seven_day_breakdown` (a per-surface summary, not a limit) showed up as a 0% model. Only `seven_day_*` entries with a numeric `utilization` count as model limits now, so the Fable entry from the `limits` array is what the popup shows
-- **Panel model checkboxes** in Settings → Panel were always empty because they read a `name` field the cached limits never had; Fable (and any other reported model) can now be picked for the panel
+
+## [2.5.2] - 2026-10-22
+
+### Fixed
+
+- **plasmashell memory leak**: every cache save ran a new shell command named after the whole cached JSON, and Plasma keeps every such command name in memory, so plasmashell grew by megabytes per save (~5.6 MB/min with both usage widgets). The cache now lives in the widget's own settings and is saved without running a command; the old cache file is read once to carry the data over
+- The process and token watchers poll one persistent source instead of starting a new command each time, and the Claude Code version recheck runs every 30 minutes and when the popup opens instead of every minute
+- The "Show in panel" model checkboxes in the settings appear again (the page read the wrong field of the cached model list)
 
 ## [2.5.1] - 2026-10-19
 
@@ -292,6 +299,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable refresh interval
 - Error handling for login issues
 
+[2.5.2]: https://github.com/izll/plasma-claude-usage/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/izll/plasma-claude-usage/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/izll/plasma-claude-usage/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/izll/plasma-claude-usage/compare/v2.4.1...v2.4.2
