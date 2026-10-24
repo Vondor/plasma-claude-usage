@@ -272,20 +272,25 @@ Item {
                     text: i18n.tr("By Model (Weekly)")
                 }
 
+                // seven_day_* rows carry nicer names, but the limits array can
+                // report a model (e.g. Fable) that has no seven_day_* key.
+                readonly property bool useModelUsage: root.modelUsage.length > 0
+                    && root.modelUsage.length >= root.modelLimits.length
+
                 Repeater {
-                    model: root.modelUsage.length > 0 ? root.modelUsage : root.modelLimits
+                    model: modelInner.useModelUsage ? root.modelUsage : root.modelLimits
                     delegate: ModelRow {
                         required property var modelData
-                        label: root.modelUsage.length > 0 ? modelData.name : modelData.label
+                        label: modelInner.useModelUsage ? modelData.name : modelData.label
                         percent: modelData.percent
-                        barColor: (root.modelUsage.length > 0 && modelData.key === "fable")
+                        barColor: String(modelInner.useModelUsage ? modelData.key : modelData.label).toLowerCase().indexOf("fable") !== -1
                             ? "#D97757" : root.getUsageColor(modelData.percent, root.useTimeAware ? root.weeklyTimePct : undefined)
                         barHeight: full.barHeight
                     }
                 }
 
                 PlasmaComponents.Label {
-                    visible: root.modelUsage.length > 0
+                    visible: modelInner.useModelUsage
                     text: i18n.tr("Other models aren't reported by the API yet")
                     font.pixelSize: Kirigami.Theme.smallFont.pixelSize - 1
                     font.italic: true; opacity: 0.45

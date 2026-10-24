@@ -784,22 +784,6 @@ PlasmoidItem {
                 root.sessionUsagePercent = fiveHour.utilization || 0
                 root.weeklyUsagePercent = sevenDay.utilization || 0
 
-                // Model breakdown from limits array (newer API)
-                var limits = []
-                if (data.limits && data.limits.length > 0) {
-                    for (var i = 0; i < data.limits.length; i++) {
-                        var entry = data.limits[i]
-                        if (entry.kind === "session" || entry.kind === "weekly_all") continue
-                        var scope = entry.scope || {}
-                        var label = (scope.model && scope.model.display_name) || scope.surface || entry.kind
-                        limits.push({ label: label, percent: entry.percent || 0 })
-                    }
-                } else {
-                    if (data.seven_day_sonnet) limits.push({ label: "Sonnet", percent: data.seven_day_sonnet.utilization || 0 })
-                    if (data.seven_day_opus) limits.push({ label: "Opus", percent: data.seven_day_opus.utilization || 0 })
-                }
-                root.modelLimits = limits
-
                 // Model breakdown from seven_day_* keys (for card view)
                 var nonModelKeys = ["oauth_apps", "cowork", "omelette"]
                 var models = []
@@ -815,6 +799,31 @@ PlasmoidItem {
                     }
                 }
                 root.modelUsage = sortModels(models, "key")
+
+                // Model breakdown from limits array (newer API)
+                var limits = []
+                if (data.limits && data.limits.length > 0) {
+                    for (var i = 0; i < data.limits.length; i++) {
+                        var entry = data.limits[i]
+                        if (entry.kind === "session" || entry.kind === "weekly_all") continue
+                        var scope = entry.scope || {}
+                        var label = (scope.model && scope.model.display_name) || scope.surface || entry.kind
+                        var percent = entry.percent !== undefined ? entry.percent : entry.utilization
+                        limits.push({ label: label, percent: percent || 0 })
+                    }
+                }
+                // Model limits reported only as seven_day_<model> keys (e.g. the
+                // Fable limit on Max plans) still go to the panel, tooltip and
+                // classic popup, unless the limits array already covers them.
+                for (var j = 0; j < root.modelUsage.length; j++) {
+                    var mu = root.modelUsage[j]
+                    var covered = false
+                    for (var k = 0; k < limits.length; k++) {
+                        if (String(limits[k].label).toLowerCase().indexOf(mu.key.toLowerCase()) !== -1) { covered = true; break }
+                    }
+                    if (!covered) limits.push({ label: mu.key.charAt(0).toUpperCase() + mu.key.slice(1), percent: mu.percent })
+                }
+                root.modelLimits = limits
 
                 root.hasSonnetData = !!data.seven_day_sonnet
                 root.hasOpusData = !!data.seven_day_opus

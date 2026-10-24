@@ -68,7 +68,8 @@ KCM.SimpleKCM {
                     var models = cache.modelLimits || []
                     var names = []
                     for (var i = 0; i < models.length; i++) {
-                        if (models[i].name) names.push(models[i].name)
+                        var n = models[i].label || models[i].name
+                        if (n) names.push(n)
                     }
                     if (names.length > 0) configPage.availableModels = names
                 } catch (e) {
